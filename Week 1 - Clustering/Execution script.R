@@ -25,6 +25,7 @@ setwd("C:\\Users\\Merlijn\\Documents\\GitHub\\Machine-Learning\\Week 1 - Cluster
 
 source("plot.homals.R")         # Overrides default homals plot command
 source("rescale.R")             # Rescales the output of homals, script written by Professor Groenen
+source('plotClusters.R')        # Plot function for k-means result
 
 ######################################
 ## Data preparation                 ##
@@ -70,10 +71,6 @@ d   <- 2    #Number of dimensions
 res.mca <- rescale(homals(data = X, ndim = d,
                      rank  = d, 
                      level = "nominal",eps=1e-12))
-#Run standard Homals
-res.mca <- rescale(homals(data = X, ndim = 6,
-                          rank  = 6, 
-                          level = "nominal",eps=1e-12))
 
 
 
@@ -94,8 +91,10 @@ plot(sse)
 #Based on this plot, 3 clusters seem to be a good choice
 #Still, interpretability will be more decisive
 
+c       <- 4    #Number of centers    
+
 #Plot WithinSSE's for many runs
-r           <- 1000
+r           <- 100
 totss       <- matrix(0,r,1)
 withinss    <- matrix(0,r,1)
 center.loop <- matrix(0,2*r,1+c)
@@ -106,85 +105,23 @@ for (i in 1:r){
                           algorithm = "Hartigan-Wong", trace=FALSE)$centers
     kmeans.i    <- kmeans(res.mca$objscores, centers = centers.init, nstart = 1, iter.max = 50,
                        algorithm = "Hartigan-Wong", trace=FALSE)
-    withinss[i,1]  <- sum(kmeans.i$withinss) 
+    withinss[i,1]  <- kmeans.i$tot.withinss
     totss[i,1]  <- kmeans.i$totss
     center.loop[((2*i)-1):(2*i),]  <- cbind(i,t(centers.init))
 }
 hist(withinss)
 
-
-c       <- 4    #Number of centers     
+#Perform full kmeans (nstart large)
 res.cluster <- kmeans(res.mca$objscores, centers = c, nstart = 50,
                       algorithm = "Hartigan-Wong", trace=FALSE)
 
-test <- pam(x = res.mca$objscores, k = c)
-test$objective
 #Plot results
 plotClusters(objectscores=res.mca$objscores,centroids=res.cluster$centers
              ,clusters=res.cluster$cluster,plotcentroidsYN=TRUE)
-
-#Plot SSE's for many runs
-
-ggplot() +
-    geom_point(data=as.data.frame(res.mca$objscores), aes(D1,D2),size=0.1)+
-    scale_shape(solid=FALSE) +
-    xlab("Dimension 1")+
-    ylab("Dimension 2")+
-    theme_bw()+
-    theme(aspect.ratio = 1)
-
-
-plot(res.mca, plot.type = "joinplot", asp = 1)  # biplot of objects and categories 
-
+#Maybe we want to add labels as well for the categories
 
 
 #Set the number of iterations needed for convergence
 iterations <- kmeans(res.homals$objscores, centers = c, iter.max = 10, nstart = 1,
        algorithm = "Hartigan-Wong", trace=FALSE)$iter
 
-
-
-
-x11()
-#Loop over number of iterations
-for (i in 1:iterations){
-    if (i == 1){center_step = c}
-    kmeans_step <- suppressWarnings(kmeans(res.homals$objscores, centers = center_step, iter.max = 1, nstart = 1,
-                          algorithm = "Hartigan-Wong", trace=FALSE))
-    center_step <- kmeans_step$centers
-
-    dfplot      <- as.data.frame(cbind(res.homals$objscores,cluster=kmeans_step$cluster))
-
-    #Make centroids
-    conf.rgn  <- do.call(rbind,lapply(unique(dfplot$cluster),function(t)
-        data.frame(cluster=as.character(t),
-                   ellipse(cov(dfplot[dfplot$cluster==t,1:2]),
-                           centre=as.matrix(center_step[t,1:2]),
-                           level=0.95),
-                   stringsAsFactors=FALSE)))  
-    
-    plot.clusters <- ggplot() +
-        geom_point(data=dfplot, aes(D1,D2,color = as.factor(cluster)),size=0.1)+
-        scale_shape(solid=FALSE) +
-        xlab("Dimension 1")+
-        ylab("Dimension 2")+
-        theme_bw()+
-        theme(aspect.ratio = 1)+
-        theme(legend.position="bottom")+
-        scale_colour_discrete(name  ="Cluster",
-                              labels)+
-        geom_point(data=as.data.frame(cbind(center_step,cluster=as.numeric(rownames(center_step))))
-                   ,aes(D1,D2,color = as.factor(cluster)),shape=18,size=3)+
-        geom_path(data=conf.rgn, aes(D1,D2,color = as.factor(cluster)))+
-        guides(alpha=FALSE)
-
-    AppendPlotList(plot.clusters)
-    plot(plot.clusters)
-    #If you want to wait for keypress
-    # cat ("Press [enter] for next iteration")
-    # line <- readline()
-    Sys.sleep(0.1) 
-}
-
-test <- plotlist[[1]]
-plot(plotlist[[3]])
