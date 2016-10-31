@@ -94,15 +94,15 @@ plot(sse)
 c       <- 4    #Number of centers    
 
 #Plot WithinSSE's for many runs
-r           <- 100
+r           <- 10000
 totss       <- matrix(0,r,1)
 withinss    <- matrix(0,r,1)
 center.loop <- matrix(0,2*r,1+c)
 gc()
 for (i in 1:r){
     set.seed(i)
-    centers.init<- kmeans(res.mca$objscores, centers = c, nstart = 1, iter.max = 1,
-                          algorithm = "Hartigan-Wong", trace=FALSE)$centers
+    centers.init<- suppressWarnings(kmeans(res.mca$objscores, centers = c, nstart = 1, iter.max = 1,
+                          algorithm = "Hartigan-Wong", trace=FALSE)$centers)
     kmeans.i    <- kmeans(res.mca$objscores, centers = centers.init, nstart = 1, iter.max = 50,
                        algorithm = "Hartigan-Wong", trace=FALSE)
     withinss[i,1]  <- kmeans.i$tot.withinss
@@ -114,6 +114,8 @@ hist(withinss)
 #Perform full kmeans (nstart large)
 res.cluster <- kmeans(res.mca$objscores, centers = c, nstart = 50,
                       algorithm = "Hartigan-Wong", trace=FALSE)
+#Check whether this withinsse equals the (expected) global minimum 
+cbind(global.min = min(withinss),foud.minimum = res.cluster$tot.withinss)
 
 #Plot results
 plotClusters(objectscores=res.mca$objscores,centroids=res.cluster$centers
@@ -121,7 +123,4 @@ plotClusters(objectscores=res.mca$objscores,centroids=res.cluster$centers
 #Maybe we want to add labels as well for the categories
 
 
-#Set the number of iterations needed for convergence
-iterations <- kmeans(res.homals$objscores, centers = c, iter.max = 10, nstart = 1,
-       algorithm = "Hartigan-Wong", trace=FALSE)$iter
 
