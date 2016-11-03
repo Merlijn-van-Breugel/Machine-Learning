@@ -1,9 +1,9 @@
 #Loop over number of iterations
-plotClusters <- function(objectscores,centroids,clusters,plotcentroidsYN){
+plotClusters <- function(objectscores,centroids,clusters,plotcentroids.YN,labels){
     
     dfplot      <- as.data.frame(cbind(objectscores,clusters))
     
-    if (plotcentroidsYN==TRUE){
+    if (plotcentroids.YN==TRUE){
     #Make centroids
     conf.rgn  <- as.data.frame(do.call(rbind,lapply(unique(dfplot$clusters),function(t)
         data.frame(cluster=as.character(t),
@@ -24,7 +24,7 @@ plotClusters <- function(objectscores,centroids,clusters,plotcentroidsYN){
                               labels)+
         geom_point(data=as.data.frame(centroids),aes(D1,D2,color = rownames(centroids)),shape=18,size=3)+
         guides(alpha=FALSE)+
-        if (plotcentroidsYN==TRUE){geom_path(data=conf.rgn, aes(D1,D2,color = as.factor(cluster)))
+        if (plotcentroids.YN==TRUE){geom_path(data=conf.rgn, aes(D1,D2,color = as.factor(cluster)))
         }
     
     return(plot.clusters)
